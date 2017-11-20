@@ -121,17 +121,9 @@ class model {
         $statement = $db->prepare($sql);
         $status = $statement->execute();
         
-        if($status == 1){
+        if($status == 1&& $this->id == ''){
             $this->id = $db->lastInsertId();
         }
-        // $tableName = get_called_class();
-
-        // $array = get_object_vars($this);
-        // $columnString = implode(',', $array);
-        // $valueString = ":".implode(',:', $array);
-        // echo "INSERT INTO $tableName (" . $columnString . ") VALUES (" . $valueString . ")</br>";
-
-        // echo 'I just saved record: ' . $this->id;
     }
 
     private function insert() {
@@ -151,7 +143,7 @@ class model {
         }
         $columnString = rtrim($columnString, ',');
         $valueString = rtrim($valueString, ',');
-        $sql = "INSERT INTO $tableName (" . $columnString . ") VALUES (" . $valueString . ");";
+        $sql = "INSERT INTO $tableName (" . $columnString . ") VALUES (" . $valueString . ")";
         return $sql;
     }
     private function update() {
@@ -174,8 +166,15 @@ class model {
         
     }
     public function delete() {
-
-        echo 'I just deleted record' . $this->id;
+        $tableName = get_called_class();
+        if(get_called_class() == 'account')
+            $tableName = 'accounts';
+        else
+            $tableName = 'todos';
+        $sql = "DELETE FROM ".$tableName." WHERE id=".$this->id."";
+        $db = dbConn::getConnection();
+        $statement = $db->prepare($sql);
+        $status = $statement->execute();
     }
 }
 
@@ -311,7 +310,7 @@ $all_todos = todos::findAll();
 $new_account = accounts::findOne(9);
 ?>
 <table border="0">
-    <tr><th>Before Update </th></tr>
+    <tr><th>Before Accounts Update </th></tr>
     <tr COLSPAN=2 BGCOLOR="#55ff00">
         <?php
             accounts::printHeaders($new_account);
@@ -326,7 +325,7 @@ $new_account->save();
 
 ?>
 <table border="0">
-    <tr><th>After Update </th></tr>
+    <tr><th>After Accounts Update </th></tr>
     <tr COLSPAN=2 BGCOLOR="#55ff00">
         <?php
             accounts::printHeaders($new_account);
@@ -336,6 +335,90 @@ $new_account->save();
 <?php 
     accounts::printOne($new_account);
 
+$record=todos::findOne(4);
+?>
+<table border="0">
+    <tr><th>Before Todos Update </th></tr>
+    <tr COLSPAN=2 BGCOLOR="#55ff00">
+        <?php
+            todos::printHeaders($record);
+        ?>
+    </tr>
+
+<?php 
+    todos::printOne($record);
+
+$record->isdone=1;
+$record->save();
+
+?>
+<table border="0">
+    <tr><th>After Todos Update </th></tr>
+    <tr COLSPAN=2 BGCOLOR="#55ff00">
+        <?php
+            todos::printHeaders($record);
+        ?>
+    </tr>
+
+<?php 
+    todos::printOne($record);
+
+$new_account = accounts::findOne(31);
+$all_accounts = accounts::findAll();
+?>
+<table border="0">
+    <tr><th>Before deleting in Accounts</th></tr>
+    <tr COLSPAN=2 BGCOLOR="#55ff00">
+        <?php
+            accounts::printHeaders($all_accounts);
+        ?>
+    </tr>
+
+<?php 
+    accounts::printAll($all_accounts);
+
+$new_account->delete();
+$all_accounts = accounts::findAll();
+?>
+<table border="0">
+    <tr><th>After deleting in Accounts</th></tr>
+    <tr COLSPAN=2 BGCOLOR="#55ff00">
+        <?php
+            accounts::printHeaders($all_accounts);
+        ?>
+    </tr>
+
+<?php 
+    accounts::printAll($all_accounts);
+
+$record = todos::findOne(10);
+$all_todos = todos::findAll();
+?>
+<table border="0">
+    <tr><th>Before deleting in Todos</th></tr>
+    <tr COLSPAN=2 BGCOLOR="#55ff00">
+        <?php
+            todos::printHeaders($all_todos);
+        ?>
+    </tr>
+
+<?php 
+    todos::printAll($all_todos);
+
+$record->delete();
+
+$all_todos = todos::findAll();
+?>
+<table border="0">
+    <tr><th>After deleting in Todos</th></tr>
+    <tr COLSPAN=2 BGCOLOR="#55ff00">
+        <?php
+            todos::printHeaders($all_todos);
+        ?>
+    </tr>
+
+<?php 
+    todos::printAll($all_todos);
 
 //print_r($record);
 ?>
