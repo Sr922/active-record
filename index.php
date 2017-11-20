@@ -63,6 +63,12 @@ class collection {
         return $recordsSet;
     }
 
+    static public function printHeaders($record){
+        foreach ($record as $key => $value) {
+            echo "<th>".$key."</th>";
+        }
+    }
+
     static public function printAll($records){
         for($i=0;$i<count($records);$i++){
             echo "<tr>";
@@ -110,6 +116,7 @@ class model {
         } else {
             $sql = $this->update();
         }
+        // echo $sql;
         $db = dbConn::getConnection();
         $statement = $db->prepare($sql);
         $status = $statement->execute();
@@ -148,8 +155,21 @@ class model {
         return $sql;
     }
     private function update() {
-        $sql = 'update';
-        echo 'I just updated record' . $this->id;
+        $tableName = get_called_class();
+        if(get_called_class() == 'account')
+            $tableName = 'accounts';
+        else
+            $tableName = 'todos';
+        $array = get_object_vars($this);
+        $columnString ='';
+        $valueString = '';
+        foreach ($array as $key => $value) {
+            if($key != 'id' && $key != 'tableName'){
+                $updateString = $updateString. $key . "= '". $value . "',";
+            }
+        }
+        $updateString = rtrim($updateString, ',');
+        $sql = "UPDATE $tableName  SET  ".$updateString." WHERE id=". $this->id;
         return $sql;
         
     }
@@ -201,9 +221,7 @@ $one_todo = todos::findOne(1);
     <tr><th>Select all Account records</th></tr>
     <tr COLSPAN=2 BGCOLOR="#55ff00">
         <?php
-            foreach ($all_accounts[0] as $key => $value) {
-                echo "<th>".$key."</th>";
-            }
+            accounts::printHeaders($all_accounts[0]);
         ?>
     </tr>
 
@@ -215,9 +233,7 @@ $one_todo = todos::findOne(1);
     <tr><th>Select One Account record </th></tr>
     <tr COLSPAN=2 BGCOLOR="#55ff00">
         <?php
-            foreach ($one_account as $key => $value) {
-                echo "<th>".$key."</th>";
-            }
+            accounts::printHeaders($one_account);
         ?>
     </tr>
 
@@ -228,9 +244,7 @@ $one_todo = todos::findOne(1);
     <tr><th>Select all Todos records</th></tr>
     <tr COLSPAN=2 BGCOLOR="#55ff00">
         <?php
-            foreach ($all_todos[0] as $key => $value) {
-                echo "<th>".$key."</th>";
-            }
+            todos::printHeaders($all_todos[0]);
         ?>
     </tr>
 
@@ -241,9 +255,7 @@ $one_todo = todos::findOne(1);
     <tr><th>Select one todo record</th></tr>
     <tr COLSPAN=2 BGCOLOR="#55ff00">
         <?php
-            foreach ($one_todo as $key => $value) {
-                echo "<th>".$key."</th>";
-            }
+            todos::printHeaders($one_todo);
         ?>
     </tr>
 
@@ -267,28 +279,63 @@ $all_accounts = accounts::findAll();
     <tr><th>New Insterted record is at the bottom</th></tr>
     <tr COLSPAN=2 BGCOLOR="#55ff00">
         <?php
-            foreach ($all_accounts[0] as $key => $value) {
-                echo "<th>".$key."</th>";
-            }
+            accounts::printHeaders($all_accounts);
         ?>
     </tr>
 
 <?php 
     accounts::printAll($all_accounts);
-       
 
+$record = new todo();
+$record->id = '';
+$record->owneremail = $new_account->email;
+$record->ownerid = $new_account->id;
+$record->createddate = '2017-11-13';
+$record->duedate = '2017-11-16';
+$record->message = 'Updating todos';
+$record->isdone = 0;
+$record->save();
+$all_todos = todos::findAll();
+?>
+<table border="0">
+    <tr><th>Newly Insterted record is at the bottom</th></tr>
+    <tr COLSPAN=2 BGCOLOR="#55ff00">
+        <?php
+            todos::printHeaders($all_todos);
+        ?>
+    </tr>
 
+<?php 
+    todos::printAll($all_todos);
 
+$new_account = accounts::findOne(9);
+?>
+<table border="0">
+    <tr><th>Before Update </th></tr>
+    <tr COLSPAN=2 BGCOLOR="#55ff00">
+        <?php
+            accounts::printHeaders($new_account);
+        ?>
+    </tr>
 
-// $record = new todo();
-// $record->id = '';
-// $record->owneremail = $new_account->email;
-// $record->ownerid = $new_account->id;
-// $record->createddate = '2017-11-13';
-// $record->duedate = '2017-11-16';
-// $record->message = 'Updating todos';
-// $record->isdone = 0;
-// $record->save();
+<?php 
+    accounts::printOne($new_account);
+
+$new_account->email='newUpdatedEmail@gmail.com';
+$new_account->save();
+
+?>
+<table border="0">
+    <tr><th>After Update </th></tr>
+    <tr COLSPAN=2 BGCOLOR="#55ff00">
+        <?php
+            accounts::printHeaders($new_account);
+        ?>
+    </tr>
+
+<?php 
+    accounts::printOne($new_account);
+
 
 //print_r($record);
 ?>
