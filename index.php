@@ -40,6 +40,7 @@ class dbConn{
         //return connection.
         return self::$db;
     }
+
 }
 
 
@@ -63,6 +64,22 @@ class collection {
         return $recordsSet;
     }
 
+    static public function findOne($id) {
+
+        $db = dbConn::getConnection();
+        $tableName = get_called_class();
+        $sql = 'SELECT * FROM ' . $tableName . ' WHERE id =' . $id;
+        $statement = $db->prepare($sql);
+        $statement->execute();
+        $class = static::$modelName;
+        $statement->setFetchMode(PDO::FETCH_CLASS, $class);
+        $recordsSet =  $statement->fetchAll();
+        if($recordsSet != null)
+            return $recordsSet[0];
+        else
+            return $recordsSet;
+    }       
+
     static public function printHeaders($record){
         foreach ($record as $key => $value) {
             echo "<th>".$key."</th>";
@@ -77,6 +94,7 @@ class collection {
             } 
             echo "</tr>";
         }
+        echo "</table>";
     }
 
     static public function printOne($record){
@@ -85,19 +103,7 @@ class collection {
             echo "<td>".$value."</td>";
         }
         echo "</tr>";
-    }
-
-    static public function findOne($id) {
-
-        $db = dbConn::getConnection();
-        $tableName = get_called_class();
-        $sql = 'SELECT * FROM ' . $tableName . ' WHERE id =' . $id;
-        $statement = $db->prepare($sql);
-        $statement->execute();
-        $class = static::$modelName;
-        $statement->setFetchMode(PDO::FETCH_CLASS, $class);
-        $recordsSet =  $statement->fetchAll();
-        return $recordsSet[0];
+        echo "</table>";
     }
 }
 
@@ -109,6 +115,16 @@ class todos extends collection {
 }
 class model {
     protected $tableName;
+
+    protected function getTableName(){
+        $tableName = get_called_class();
+        if(get_called_class() == 'account')
+            $tableName = 'accounts';
+        else
+            $tableName = 'todos';
+
+        return $tableName;
+    }
     public function save()
     {
         if ($this->id == '') {
@@ -127,11 +143,7 @@ class model {
     }
 
     private function insert() {
-        $tableName = get_called_class();
-        if(get_called_class() == 'account')
-            $tableName = 'accounts';
-        else
-            $tableName = 'todos';
+        $tableName = $this->getTableName();
         $array = get_object_vars($this);
         $columnString ='';
         $valueString = '';
@@ -147,14 +159,9 @@ class model {
         return $sql;
     }
     private function update() {
-        $tableName = get_called_class();
-        if(get_called_class() == 'account')
-            $tableName = 'accounts';
-        else
-            $tableName = 'todos';
+        $tableName = $this->getTableName();
         $array = get_object_vars($this);
-        $columnString ='';
-        $valueString = '';
+        $updateString='';
         foreach ($array as $key => $value) {
             if($key != 'id' && $key != 'tableName'){
                 $updateString = $updateString. $key . "= '". $value . "',";
@@ -166,15 +173,16 @@ class model {
         
     }
     public function delete() {
-        $tableName = get_called_class();
-        if(get_called_class() == 'account')
-            $tableName = 'accounts';
-        else
-            $tableName = 'todos';
+        $tableName = $this->getTableName();
         $sql = "DELETE FROM ".$tableName." WHERE id=".$this->id."";
         $db = dbConn::getConnection();
-        $statement = $db->prepare($sql);
-        $status = $statement->execute();
+        try {
+            $statement = $db->prepare($sql);
+            $status = $statement->execute();
+        } catch (Exception $e) {
+            print $e->getMessage() . "<br/>";
+        }
+        
     }
 }
 
@@ -278,7 +286,7 @@ $all_accounts = accounts::findAll();
     <tr><th>New Insterted record is at the bottom</th></tr>
     <tr COLSPAN=2 BGCOLOR="#55ff00">
         <?php
-            accounts::printHeaders($all_accounts);
+            accounts::printHeaders($all_accounts[0]);
         ?>
     </tr>
 
@@ -300,7 +308,7 @@ $all_todos = todos::findAll();
     <tr><th>Newly Insterted record is at the bottom</th></tr>
     <tr COLSPAN=2 BGCOLOR="#55ff00">
         <?php
-            todos::printHeaders($all_todos);
+            todos::printHeaders($all_todos[0]);
         ?>
     </tr>
 
@@ -308,6 +316,8 @@ $all_todos = todos::findAll();
     todos::printAll($all_todos);
 
 $new_account = accounts::findOne(9);
+if($new_account != null)
+{    
 ?>
 <table border="0">
     <tr><th>Before Accounts Update </th></tr>
@@ -334,8 +344,12 @@ $new_account->save();
 
 <?php 
     accounts::printOne($new_account);
+}
+else 
+    echo "<h3>No record found to update the account, for the ID passed.</h3>";
 
 $record=todos::findOne(4);
+if($record != null){
 ?>
 <table border="0">
     <tr><th>Before Todos Update </th></tr>
@@ -362,63 +376,73 @@ $record->save();
 
 <?php 
     todos::printOne($record);
+}
+else 
+    echo "<h3>No record found to update the todo, for the ID passed.</h3>";
 
 $new_account = accounts::findOne(31);
-$all_accounts = accounts::findAll();
-?>
-<table border="0">
-    <tr><th>Before deleting in Accounts</th></tr>
-    <tr COLSPAN=2 BGCOLOR="#55ff00">
-        <?php
-            accounts::printHeaders($all_accounts);
-        ?>
-    </tr>
+if($new_account != null){
+    $new_account->delete();
+    $all_accounts = accounts::findAll();
+    ?>
+    <table border="0">
+        <tr><th>Before deleting in Accounts</th></tr>
+        <tr COLSPAN=2 BGCOLOR="#55ff00">
+            <?php
+                accounts::printHeaders($all_accounts[0]);
+            ?>
+        </tr>
 
-<?php 
-    accounts::printAll($all_accounts);
+    <?php 
+        accounts::printAll($all_accounts);
 
-$new_account->delete();
-$all_accounts = accounts::findAll();
-?>
-<table border="0">
-    <tr><th>After deleting in Accounts</th></tr>
-    <tr COLSPAN=2 BGCOLOR="#55ff00">
-        <?php
-            accounts::printHeaders($all_accounts);
-        ?>
-    </tr>
+    $all_accounts = accounts::findAll();
+    ?>
+    <table border="0">
+        <tr><th>After deleting in Accounts</th></tr>
+        <tr COLSPAN=2 BGCOLOR="#55ff00">
+            <?php
+                accounts::printHeaders($all_accounts[0]);
+            ?>
+        </tr>
 
-<?php 
-    accounts::printAll($all_accounts);
+    <?php 
+        accounts::printAll($all_accounts);
+}
+else
+    echo "<h1>No record found or already the account has been deleted</h1>";
 
 $record = todos::findOne(10);
-$all_todos = todos::findAll();
-?>
-<table border="0">
-    <tr><th>Before deleting in Todos</th></tr>
-    <tr COLSPAN=2 BGCOLOR="#55ff00">
-        <?php
-            todos::printHeaders($all_todos);
-        ?>
-    </tr>
+if($record != null){
+    $record->delete();
+    $all_todos = todos::findAll();
+    ?>
+    <table border="0">
+        <tr><th>Before deleting in Todos</th></tr>
+        <tr COLSPAN=2 BGCOLOR="#55ff00">
+            <?php
+                todos::printHeaders($all_todos[0]);
+            ?>
+        </tr>
 
-<?php 
-    todos::printAll($all_todos);
+    <?php 
+        todos::printAll($all_todos);
+        $all_todos = todos::findAll();
+    ?>
+    <table border="0">
+        <tr><th>After deleting in Todos</th></tr>
+        <tr COLSPAN=2 BGCOLOR="#55ff00">
+            <?php
+                todos::printHeaders($all_todos[0]);
+            ?>
+        </tr>
 
-$record->delete();
+    <?php 
+        todos::printAll($all_todos);
+}
 
-$all_todos = todos::findAll();
-?>
-<table border="0">
-    <tr><th>After deleting in Todos</th></tr>
-    <tr COLSPAN=2 BGCOLOR="#55ff00">
-        <?php
-            todos::printHeaders($all_todos);
-        ?>
-    </tr>
-
-<?php 
-    todos::printAll($all_todos);
+else
+    echo "<h1>No record found or already the todo has been deleted</h1>";
 
 //print_r($record);
 ?>
